@@ -143,3 +143,169 @@ These trade-offs are a core challenge in distributed system design. The choice o
 We will explore these trade-offs in greater depth in the following sections, diving into concepts like eventual consistency, strong consistency, and how to balance them in a distributed environment. 🔍
 
 ---
+
+# **Consistency in Distributed System Design** 🖥️
+
+Consistency in distributed system design is the idea that all nodes in a distributed system should agree on the same state or view of the data, even though the data may be replicated and distributed across multiple nodes. 🌐 In other words, consistency ensures that all nodes store the same data and return updates to the data in the same order when queried for the same updates. This concept is crucial for ensuring reliability and predictability in distributed systems. 📊
+
+There are primarily two types of consistency models that can be used in distributed systems:
+
+- **Strong Consistency** 🔒
+- **Eventual Consistency** ⏳
+
+Let’s explore these models in detail, using a hotel room booking example to illustrate their implications.
+
+---
+
+## Strong Consistency 🔒
+
+Strong consistency in distributed systems refers to a property that ensures all nodes in the system observe the same order of updates to shared data. It guarantees that when a write operation is performed, any subsequent read operation will always return the most recent value. 📝 Strong consistency enforces strict synchronization and order of operations, providing a **linearizable view** of the system, meaning the system behaves as if all operations happen sequentially in a predictable order.
+
+### How Is Strong Consistency Achieved? 🛠️
+
+To achieve strong consistency, distributed systems employ mechanisms such as:
+
+- **Distributed Transactions**: Updates across nodes are treated as a single transaction, ensuring all nodes are updated together.
+- **Distributed Locking**: A node locks the data to prevent concurrent updates until the operation is complete. 🔐
+- **Consensus Protocols**: Algorithms like Raft or Paxos are used to ensure all nodes agree on the order of updates and maintain a consistent state. 🤝
+
+These mechanisms coordinate the execution of operations across multiple nodes, ensuring that all nodes agree on the order of updates and maintain a consistent state.
+
+### Advantages and Disadvantages ✅❌
+
+- **Advantages**:
+  - **Predictable Behavior**: Strong consistency offers a straightforward and intuitive programming model, as it guarantees predictable and deterministic behavior. Developers can reason about the system’s state and make assumptions based on the order of operations. 🧠
+  - **Ideal for Critical Systems**: It’s perfect for applications where data accuracy is non-negotiable, such as financial systems. 💸
+- **Disadvantages**:
+  - **Increased Latency**: Achieving strong consistency often requires waiting for synchronization or consensus across nodes, leading to higher latency. ⏳
+  - **Reduced Availability**: The system may become unavailable if nodes need to wait for synchronization, especially during network partitions or failures. 🚫
+
+### Example: Banking System 💰
+
+A good example of a system that requires a strong consistency model is a banking system. Banking and financial applications deal with sensitive data, such as account balances and transaction histories. Ensuring strong consistency is crucial to avoid discrepancies and prevent erroneous operations that could lead to financial losses or incorrect accounting. For instance, if a user transfers money, the balance must be updated immediately across all nodes to prevent another transaction from using an outdated balance, which could result in overdraft or errors.
+
+---
+
+## Eventual Consistency ⏳
+
+Eventual consistency, on the other hand, is a consistency model that allows for temporary inconsistencies in the system but guarantees that eventually, all replicas or nodes will converge to a consistent state. 🌟 In other words, it allows updates made to the system to propagate asynchronously across different nodes, and eventually, all replicas will agree on the same value.
+
+Unlike strong consistency, where all nodes observe the same order of updates in real-time, eventual consistency relaxes the synchronization requirements and accepts that there may be a period during which different nodes have different views of the system’s state. This temporary inconsistency is typically due to factors such as network delays, message propagation, or replica synchronization.
+
+### How Does Eventual Consistency Work? 🔄
+
+Eventual consistency is often achieved through techniques such as:
+
+- **Conflict Resolution**: When concurrent updates occur on different nodes, the system resolves conflicts (e.g., by choosing the latest update based on timestamps). ⚖️
+- **Replication**: Updates are propagated to multiple replicas asynchronously, allowing nodes to update at different times. 📤
+- **Gossip Protocols**: Nodes share updates with each other in a decentralized manner, gradually disseminating updates across the system. 🗣️
+
+When conflicts occur, such as concurrent updates to the same data on different nodes, the system applies conflict resolution strategies to reconcile the differences and converge toward a consistent state.
+
+### Key Characteristic 🔑
+
+The key characteristic of eventual consistency is that, given enough time without further updates or conflicts, all replicas will eventually converge to the same value. The convergence time depends on factors such as:
+
+- Network latency (how long it takes for data to travel between nodes). 🌍
+- Update frequency (how often updates are made). 📅
+- Conflict resolution mechanisms (how conflicts are resolved). 🛠️
+
+### Advantages and Disadvantages ✅❌
+
+- **Advantages**:
+  - **Increased Availability**: Eventual consistency allows nodes to continue operating and serving requests, even during network partitions or temporary failures. 🌟
+  - **Scalability**: It enables workload distribution across replicas, improving system performance and scalability. 📈
+  - **Faster Response Times**: Since there’s no need to wait for synchronization, clients get quicker responses. ⚡
+- **Disadvantages**:
+  - **Temporary Inconsistencies**: Applications must handle scenarios where different nodes may have different views of the system’s state. 🚨
+  - **Conflict Management**: Techniques like conflict resolution, versioning, or reconciliation algorithms are needed to ensure eventual convergence. ⚙️
+
+### Example: Social Media Platform 📱
+
+Eventual consistency is often used in social media platforms like Instagram. When a user uploads a post, it might be immediately visible to some users but take a few seconds to appear for others. This temporary inconsistency is acceptable because availability and speed are prioritized over immediate consistency in such systems.
+
+---
+
+<div align="center">
+  <img src="./images/02.jpg" alt="" width="600px"/>
+</div>
+
+## Hotel Room Booking Example (Figure 2.2) 🏨
+
+Let’s apply these concepts to the hotel room booking example, as shown in **Figure 2.2**, to understand how consistency models impact system behavior.
+
+### Scenario Overview 🔍
+
+- **User (u1)** books room (r1). The write operation goes to **db1**, and then the update is replicated to **db2** and **db3**.
+- While replication is happening, **user (u2)** makes an API call (`isRoomAvailable(r1)`) to check if room (r1) is available.
+- **Potential Issue**: Depending on whether the write has been replicated to db2 or db3, the API call might return:
+  - **True** (room is available) if the replica hasn’t been updated yet.
+  - **False** (room is booked) if the replica reflects the latest write.
+
+### Consistency Challenge ⚖️
+
+- With **strong consistency**, u2 would always see the latest data (room is booked), but this might come at the cost of higher latency since the system would need to ensure all replicas are synchronized before responding.
+- With **eventual consistency**, u2 might see stale data (room is available) because replication hasn’t completed, but the response would be faster since the system doesn’t wait for synchronization.
+
+---
+
+## Designing Consistency in the Hotel Booking System 🛠️
+
+As system designers, we have the option to design for either **strong consistency** or **eventual consistency**. The choice depends on how we configure the read and write operations across the replicas. Let’s define the parameters:
+
+- **n** = The number of replicas (in this case, 3: db1, db2, db3).
+- **r** = The number of replicas we consider reading from.
+- **w** = The number of replicas we consider writing to.
+
+We communicate with all **n** replicas but evaluate responses from **w** (for writes) or **r** (for reads) replicas to determine the outcome.
+
+### Consistency Options 📋
+
+Here are the possible configurations and their implications:
+
+1. **w=1, r=3 → Strong Consistency, Fast Writes, Slow Reads** 🚀
+
+   - **Writes**: The write goes to 1 replica (e.g., db1), and the client gets an acknowledgment quickly.
+   - **Reads**: The system reads from all 3 replicas and determines the latest value, which makes reads slower but ensures consistency.
+   - **Result**: Strong consistency because reading from all replicas guarantees the latest data.
+
+2. **w=3, r=1 → Strong Consistency, Slow Writes, Fast Reads** 🐢
+
+   - **Writes**: The write goes to all 3 replicas, and the client must wait for all replicas to acknowledge, making writes slow.
+   - **Reads**: The system reads from 1 replica, which is fast.
+   - **Result**: Strong consistency because all replicas are updated before any read occurs, ensuring the read gets the latest data.
+
+3. **w=2, r=2 → Strong Consistency, Writes and Reads at the Same Pace** ⚖️
+
+   - **Writes**: The write goes to 2 replicas, with moderate latency.
+   - **Reads**: The system reads from 2 replicas, also with moderate latency.
+   - **Result**: Strong consistency because w + r = 4, which is greater than n (3), ensuring an overlap that guarantees the latest data.
+
+4. **w=1, r=1 → Eventual Consistency, Fast Writes, Fast Reads** ⚡
+
+   - **Writes**: The write goes to 1 replica, which is fast.
+   - **Reads**: The system reads from 1 replica, which is also fast.
+   - **Result**: Eventual consistency because w + r = 2, which is less than n (3), meaning there’s no guaranteed overlap, and stale data might be read.
+
+### Consistency Formula 📐
+
+- If **r + w &gt; n**, the system achieves **strong consistency** because there’s an overlap between the replicas written to and read from, ensuring the latest data is always accessed.
+- If **r + w ≤ n**, the system achieves **eventual consistency** because there’s no guaranteed overlap, leading to potential temporary inconsistencies.
+
+---
+
+## Is Eventual Consistency Okay for Hotel Booking? 🤔
+
+In the hotel room booking use case, which consistency model should we choose?
+
+- **Strong Consistency**: This seems like the obvious choice because if u2 sees stale data and tries to book the same room, it could lead to a double booking, which is a significant problem. Strong consistency ensures u2 always sees the latest data (room is booked), avoiding conflicts. ✅
+- **Eventual Consistency**: If we prioritize availability (the system staying operational even during failures), we might choose eventual consistency. This would make the system faster and more available but risks temporary inconsistencies like double bookings. ⚠️
+
+### Trade-offs ⚖️
+
+- **Strong Consistency**: Ensures correctness and avoids double bookings but may increase latency and reduce availability if replicas need to synchronize.
+- **Eventual Consistency**: Offers faster responses and higher availability but risks issues like double bookings, which could frustrate users.
+
+In most hotel booking systems, **strong consistency** is preferred because correctness and user experience (avoiding double bookings) are critical. However, if the system needs to handle extremely high traffic and availability is a higher priority, eventual consistency might be considered as a trade-off.
+
+---
